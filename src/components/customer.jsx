@@ -13,7 +13,7 @@ import * as Yup from "yup";
 const Customer=()=>{
 
     const [view,setView]=useState(false);
-
+    console.log("")
     function handleView() {
         setView(false);
     }
