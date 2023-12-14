@@ -12,7 +12,7 @@ import * as Yup from "yup";
 //import CalendarViewDayIcon from '@mui/icons-material/CalendarViewDay';
 const Customer=()=>{
 
-    const [view,setView]=useState(false);
+    const [view,setView]=useState(true);
 
     function handleView() {
         setView(false);
@@ -23,7 +23,8 @@ const Customer=()=>{
     }
 
     return(
-        <Container  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+        // <Container  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',}}>
+        <Container>
             {view ? <CustomerEntry handleView={handleView}/>
                   : <CustomerList handleBack={handleBack} />  }
         </Container>
@@ -128,7 +129,6 @@ const CustomerEntry=({handleView})=>{
         }
     })
 
-
     return(
         <Card>
             <CardHeader title="CUSTOMER" 
@@ -139,7 +139,7 @@ const CustomerEntry=({handleView})=>{
                             </Fab>
                         </Tooltip> }
             />
-            <form>
+            <form className="myform" onSubmit={formik.handleSubmit} >
                 <CardContent>
                     <div className="row">
                         <div className="col-sm-4 my-3">
@@ -207,7 +207,7 @@ const CustomerEntry=({handleView})=>{
                         </div>
                     </div>
                     <div className="text-center text-md-end my-3">
-                        <Button variant="contained" color="primary" sx={{marginX:'1em'}}>SAVE</Button>
+                        <Button variant="contained" color="primary" sx={{marginX:'1em'}} type="submit">SAVE</Button>
                         <Button variant="contained" color="error" sx={{marginX:'1em'}}>CANCEL</Button>
                     </div>
                 </CardContent>

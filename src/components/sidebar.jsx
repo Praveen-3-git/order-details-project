@@ -17,11 +17,8 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import PersonIcon from '@mui/icons-material/Person';
-import Home from './home.jsx';
-import Customer from './customer.jsx'
-import Item from './item.jsx'
-import Bill from './bill.jsx'
-const drawerWidth = 240;
+import { NavLink, Outlet } from 'react-router-dom';
+const drawerWidth = 200;
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -32,17 +29,6 @@ const openedMixin = (theme) => ({
   overflowX: 'hidden',
 });
 
-// const closedMixin = (theme) => ({
-//   transition: theme.transitions.create('width', {
-//     easing: theme.transitions.easing.sharp,
-//     duration: theme.transitions.duration.leavingScreen,
-//   }),
-//   overflowX: 'hidden',
-//   width: `calc(${theme.spacing(7)} + 1px)`,
-//   [theme.breakpoints.up('sm')]: {
-//     width: `calc(${theme.spacing(8)} + 1px)`,
-//   },
-// });
 const closedMixin = (theme) => ({
   transition: theme.transitions.create('width', {
     easing: theme.transitions.easing.sharp,
@@ -98,30 +84,15 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     }),
   }),
 );
-const navContent=[
-  {text: 'Home',icon:<PersonIcon/>},
-  {text: 'Customer',icon:<PersonIcon/>},
-  {text: 'Item',icon:<PersonIcon/>},
-  {text: 'Bill',icon:<PersonIcon/>},
-]
 
+const navContent = [
+  { to: '/', icon: <PersonIcon/> , text: 'Home' },
+  { to: '/customer', icon: <PersonIcon/>, text: 'Customer' },
+  { to: '/item', icon: <PersonIcon/>, text: 'Item' }
+];
 export default function Sidebarmini() {
   const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
-  const [content,setcontent]=React.useState(<Customer/>)
-
-  const handleClick=(text)=>{
-    console.log(text)
-    if(text=='Home')
-      setcontent(<Home/>);
-    else if(text=='Customer')
-      setcontent(<Customer/>);
-    else if(text=='Item')
-      setcontent(<Item/>);
-    else if(text=='Bill')
-      setcontent(<Bill/>);
-  }
-
+  const [open, setOpen] = React.useState(true);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -162,8 +133,8 @@ export default function Sidebarmini() {
         <Divider />
         <List>
           {navContent.map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ display: 'block' }} onClick={()=>handleClick(item.text)} > 
-              <ListItemButton
+            <ListItem key={item.text} disablePadding sx={{ display: 'block' }} /*onClick={()=>handleClick(item.text)}*/ > 
+              <ListItemButton component={NavLink} to={item.to}
                 sx={{
                   minHeight: 48,
                   justifyContent: open ? 'initial' : 'center',
@@ -188,7 +159,7 @@ export default function Sidebarmini() {
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
-        {content}
+        <Outlet/>
       </Box>
     </Box>
   );
