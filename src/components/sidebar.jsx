@@ -21,7 +21,7 @@ import Home from './home.jsx';
 import Customer from './customer.jsx'
 import Item from './item.jsx'
 import Bill from './bill.jsx'
-const drawerWidth = 240;
+const drawerWidth = 200;
 
 const openedMixin = (theme) => ({
   width: drawerWidth,

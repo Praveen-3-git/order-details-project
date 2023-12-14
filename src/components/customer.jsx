@@ -2,7 +2,7 @@
 import { Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, IconButton, TextField, Tooltip } from "@mui/material";
 import { useEffect, useState } from "react"
 //import CloseIcon from '@mui/icons-material/Close';
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import axios from "axios";
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -13,7 +13,7 @@ import * as Yup from "yup";
 const Customer=()=>{
 
     const [view,setView]=useState(false);
-    console.log("")
+    
     function handleView() {
         setView(false);
     }
@@ -82,10 +82,10 @@ const CustomerList=({handleBack})=>{
             <CardHeader 
                 title="CUSTOMER LIST" 
                 action={<Tooltip title="View" placement="top" arrow>
-                            <Fab size="small" onClick={handleBack}><AddIcon/></Fab>
+                            <Fab size="small" color="primary" onClick={handleBack}><AddIcon/></Fab>
                         </Tooltip> }
                 />
-            <CardContent>
+            <CardContent sx={{ margin: "auto", '& .headercol': { backgroundColor: 'gray', color: "white"} }}>
                <Box sx={{width:"85vw"}}>
                     <DataGrid
                         rows={displayData} columns={column} disableRowSelectionOnClick
@@ -93,11 +93,22 @@ const CustomerList=({handleBack})=>{
                         initialState={{
                             pagination: {
                               paginationModel: {
-                                pageSize: 5,
+                                pageSize: 10,
                               },
                             },
-                          }}
-                          pageSizeOptions={[5, 10, 25]}
+                        }}
+                        pageSizeOptions={[10, 15, 25]}
+                        disableColumnFilter
+                        disableColumnSelector
+                        disableDensitySelector
+                        slots={{ toolbar: GridToolbar }}
+                        slotProps={{
+                            toolbar: {
+                                showQuickFilter: true,
+                                printOptions: { disableToolbarButton: true },
+                                csvOptions: { disableToolbarButton: true },
+                            }}
+                        }
                     />
                 </Box>
             </CardContent>
@@ -107,7 +118,7 @@ const CustomerList=({handleBack})=>{
 
 // eslint-disable-next-line react/prop-types
 const CustomerEntry=({handleView})=>{
-
+    const baseURL="https://localhost:5001/api/Customer"
     const formik=useFormik({
         initialValues:{
             customername:"",
@@ -121,10 +132,31 @@ const CustomerEntry=({handleView})=>{
             outstandinglimit:'',
         },
         validationSchema:Yup.object({
-            
+            customername:Yup.string().required("Customer Name is Required"),
+            address:Yup.string().required("Address is Required"),
+            street:Yup.string().required("Street is Required"),
+            city:Yup.string().required("City is Required"),
+            pincode:Yup.string().required("Pincode is Required"),
+            mobileNumber:Yup.string().required("Mobile Number is Required"),
+            email:Yup.string().required("Email is Required"),
+            outstandingamount:Yup.number().required("Outstanding Amount is Required"),
+            outstandinglimit:Yup.number().required("Outstanding Limit is Required"),
         }),
         onSubmit:(values)=>{
             console.log(values)
+            // axios.post(baseURL, {
+            //     customername:"",
+            //     address:"",
+            //     street:'',
+            //     city:'',
+            //     pincode:'',
+            //     mobileNumber:"",
+            //     email:'',
+            //     outstandingamount:'',
+            //     outstandinglimit:'',
+            // }).then(() => {
+            //     console.log('added')
+            // });
         }
     })
 
@@ -139,7 +171,7 @@ const CustomerEntry=({handleView})=>{
                             </Fab>
                         </Tooltip> }
             />
-            <form>
+            <form className="myform" onSubmit={formik.handleSubmit}>
                 <CardContent>
                     <div className="row">
                         <div className="col-sm-4 my-3">
@@ -207,7 +239,7 @@ const CustomerEntry=({handleView})=>{
                         </div>
                     </div>
                     <div className="text-center text-md-end my-3">
-                        <Button variant="contained" color="primary" sx={{marginX:'1em'}}>SAVE</Button>
+                        <Button variant="contained" color="primary" sx={{marginX:'1em'}} type="submit">SAVE</Button>
                         <Button variant="contained" color="error" sx={{marginX:'1em'}}>CANCEL</Button>
                     </div>
                 </CardContent>
