@@ -19,6 +19,9 @@ import ListItemText from '@mui/material/ListItemText';
 import PersonIcon from '@mui/icons-material/Person';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Tooltip, useMediaQuery } from '@mui/material';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import HomeIcon from '@mui/icons-material/Home';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 const drawerWidth = 180;
 
 const openedMixin = (theme) => ({
@@ -87,9 +90,10 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 );
 
 const navContent = [
-  { to: '/', icon: <PersonIcon/> , text: 'Home' },
+  { to: '/', icon: <HomeIcon/> , text: 'Home' },
   { to: '/customer', icon: <PersonIcon/>, text: 'Customer' },
-  { to: '/item', icon: <PersonIcon/>, text: 'Item' }
+  { to: '/item', icon: <FactCheckIcon/>, text: 'Item' },
+  { to: '/bill', icon: <ReceiptLongIcon/>, text: 'Bill' }
 ];
 export default function Sidebarmini() {
   const theme = useTheme();
@@ -137,18 +141,23 @@ export default function Sidebarmini() {
           {navContent.map((item) => (
             <ListItem key={item.text} disablePadding sx={{ display: 'block' }} /*onClick={()=>handleClick(item.text)}*/ > 
               <Tooltip title={item.text} placement='right' arrow>
-              <ListItemButton component={NavLink} to={item.to}
+              <ListItemButton component={NavLink} to={item.to} 
                 sx={{
                   minHeight: 48,
                   justifyContent: open ? 'initial' : 'center',
                   px: 2.5,
-                }}
+                  backgroundColor: theme => theme.palette.background.default,
+                    '&.active': {
+                      backgroundColor: 'gray',color:'white' // Set the desired background color for the active link
+                    },
+                  }}
               >
                 <ListItemIcon
                   sx={{
                     minWidth: 0,
                     mr: open ? 3 : 'auto',
                     justifyContent: 'center',
+                    // color: 'inherit',
                   }}
                 >
                   {item.icon}
