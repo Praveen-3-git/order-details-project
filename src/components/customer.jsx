@@ -54,7 +54,7 @@ const CustomerList=({handleAdd,getEditID,baseURL})=>{
     },[])
     const column=[
         {
-            field:'act',headerName: 'Action',align: 'center', headerAlign: 'center', minWidth: 100,width:120, sortable: false , headerClassName: 'headercol',
+            field:'act',headerName: 'Action',align: 'center', headerAlign: 'center', minWidth: 100,width:120, sortable: false ,disableColumnMenu:true, headerClassName: 'headercol',
             renderCell:(params)=>(
                 <ButtonGroup size="small">
                     <Tooltip title="EDIT" placement="left">
@@ -167,8 +167,7 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
             else{
                 console.log('add')
                 addPost(values)
-            }
-                
+            }  
         }
     })
     function addPost(values){
@@ -188,8 +187,8 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
         });
     }
     function editPost(values){
-        console.log(editid.customerId)
-        console.log(values.customerName)
+        // console.log(editid.customerId)
+        // console.log(values.customerName)
         axios
             .patch(baseURL, {
                 customerId:editid.customerId,
@@ -212,11 +211,8 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
             });
     }
     function cancelBtn(){
-        formik.handleReset
-        if(editid){
-            document.getElementById('viewBTN').click()
-            
-        }      
+        formik.handleReset()
+        document.getElementById('viewBTN').click()         
     }
     return(
         <Card>

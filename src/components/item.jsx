@@ -89,7 +89,7 @@ const ItemList=({handleAdd,getEditID,baseURL})=>{
                         </Tooltip>}
             />
             <CardContent>
-                <Box sx={{'& .headercol': { backgroundColor: 'gray', color: "white",fontSize:'1.15em'}}}>
+                <Box sx={{'& .headercol': { backgroundColor: 'gray', color: "white",fontSize:'1.1em'}}}>
                 <DataGrid
                         rows={displayData} columns={column} disableRowSelectionOnClick
                         getRowId={(row) => row.itemId} 
@@ -123,9 +123,7 @@ const ItemList=({handleAdd,getEditID,baseURL})=>{
         </Card>
     )
 }
-
 const ItemEntry=({handleView,editid,baseURL})=>{
-
     const formik=useFormik({
         initialValues:{
             itemCode:editid?editid.itemCode:'',
@@ -187,9 +185,7 @@ const ItemEntry=({handleView,editid,baseURL})=>{
     }
     function cancelBtn(){
         formik.handleReset
-        if(editid){
-            document.getElementById('viewBTN').click()    
-        }      
+        document.getElementById('viewBTN').click()         
     }
     return(
         <Card>
