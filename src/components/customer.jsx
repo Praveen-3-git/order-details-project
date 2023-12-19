@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
-import { Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, IconButton, TextField, Tooltip } from "@mui/material";
+import { Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, IconButton, Snackbar, TextField, Tooltip } from "@mui/material";
 import { useEffect, useState } from "react"
+import * as React from 'react';
 //import CloseIcon from '@mui/icons-material/Close';
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import axios from "axios";
@@ -9,10 +10,30 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import MuiAlert from '@mui/material/Alert';
 //import CalendarViewDayIcon from '@mui/icons-material/CalendarViewDay';
 const Customer=()=>{
     const [view,setView]=useState(false);
     const [editid,setEditid]=useState('')
+
+    const [status, setstatus] =useState({
+        open: false,
+        text: '',
+        color: 'success',
+        vertical:'top',
+        horizontal:'center'
+      });
+    const handleClick = (text,color) => {
+        setstatus({open: true,text:text,color:color });
+      };
+    
+      const handleClose = (event, reason,newstatus) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+        setstatus({ ...newstatus, open: false });
+      };
+
     const baseURL="https://localhost:5001/api/Customer"
     function handleView() {
         setView(false);
@@ -31,13 +52,18 @@ const Customer=()=>{
     return(
         // <Container  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',}}>
         <Container maxWidth='xl'>
-            {view ? <CustomerEntry handleView={handleView} editid={editid}  closeEditid={closeEditid} baseURL={baseURL}/>
-                  : <CustomerList handleAdd={handleAdd} getEditID={getEditID} baseURL={baseURL}/>  }
+            {view ? <CustomerEntry handleView={handleView} editid={editid}  closeEditid={closeEditid} baseURL={baseURL} handleClick={handleClick} handleClose={handleClose} status={status}/>
+                  : <CustomerList handleAdd={handleAdd} getEditID={getEditID} baseURL={baseURL} handleClick={handleClick}/>  }
+                    <Snackbar open={status.open} autoHideDuration={1000}  onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                        <Alert onClose={handleClose} severity={status.color} sx={{ width: '100%' }}>
+                            {status.text}
+                        </Alert>
+                    </Snackbar>
         </Container>
     )
 }
 
-const CustomerList=({handleAdd,getEditID,baseURL})=>{
+const CustomerList=({handleAdd,getEditID,baseURL,handleClick})=>{
     const [displayData,setDisplayData]=useState([]);
     
     const fetchData=async ()=>{
@@ -81,11 +107,14 @@ const CustomerList=({handleAdd,getEditID,baseURL})=>{
         { field: 'outstandingLimit', headerName: 'OutstandingLimit', minWidth: 100, width:150, align: 'right', headerAlign: 'center', headerClassName: 'headercol',},
     ]
     function deletepost(r){
-        axios.delete(`${baseURL}/${r.customerId}`)
-            .then(()=>{
-                alert("Post Deleted!")
-                fetchData();
-            })
+        if(confirm("Are you want to delete")==true){
+            axios.delete(`${baseURL}/${r.customerId}`)
+                .then(()=>{
+                    //alert("Post Deleted!")
+                    handleClick("DELETED","success")
+                    fetchData();
+                })
+        }
     }
     return(
         <Card>
@@ -132,7 +161,7 @@ const CustomerList=({handleAdd,getEditID,baseURL})=>{
     )
 }
 
-const CustomerEntry=({handleView,editid,baseURL})=>{
+const CustomerEntry=({handleView,editid,baseURL,handleClick})=>{
     //const baseURL="https://localhost:5001/api/Customer"
     const formik=useFormik({
         initialValues:{
@@ -163,6 +192,7 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
                 console.log(editid.customerId)
                 editPost(values)
                 //closeEditid()
+                
             }
             else{
                 console.log('add')
@@ -183,6 +213,7 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
             outstandingLimit:values.outstandingLimit,
         }).then(() => {
             console.log('added')
+            handleClick("Added","success")
             document.getElementById("viewBTN").click() 
         });
     }
@@ -204,6 +235,7 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
             })
             .then((response) => {
                 console.log(response)
+                handleClick("Updated","success")
                 document.getElementById("viewBTN").click() 
             })
             .catch((error) => {
@@ -298,9 +330,13 @@ const CustomerEntry=({handleView,editid,baseURL})=>{
                             : (<Button variant="contained" color="primary" sx={{marginX:'1em'}} type="submit">SAVE</Button>) }  
                         <Button variant="contained" color="error" sx={{marginX:'1em'}} type="reset" onClick={cancelBtn} >CANCEL</Button>
                     </div>
+                    
                 </CardContent>
             </form>
         </Card>
     )
 }
+const Alert = React.forwardRef(function Alert(props, ref) {
+    return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+  });
 export default Customer

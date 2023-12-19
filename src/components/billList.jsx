@@ -24,7 +24,7 @@ const BillList = ({handleAdd,baseURL,getEditID}) => {
     },[])
     const column=[
         {
-            field:'act',headerName: 'ACTION',align: 'center', headerAlign: 'center', minWidth: 120, sortable: false ,disableColumnMenu:true, headerClassName: 'headercol',
+            field:'act',headerName: 'ACTION',align: 'center', headerAlign: 'center', minWidth: 100,width:120, sortable: false ,disableColumnMenu:true, headerClassName: 'headercol',
             renderCell:(params)=>(
                 <ButtonGroup size="small">
                     <Tooltip title="EDIT" placement="left">
@@ -40,12 +40,17 @@ const BillList = ({handleAdd,baseURL,getEditID}) => {
                 </ButtonGroup>
             )
         },
-        { field: 'billNumber', headerName: 'BILL NUMBER ', minWidth: 150, headerAlign: 'center', headerClassName: 'headercol',},
-        { field: 'billDate', headerName: 'BILL DATE', minWidth: 200,  headerAlign: 'center', headerClassName: 'headercol',},
-        { field: 'totalValue', headerName: 'TOTAL VALUE', minWidth: 150, align:'right', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'billNumber', headerName: 'BILL NUMBER ', minWidth: 150, width:150, headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'billDate', headerName: 'BILL DATE', minWidth: 100, width:150, headerAlign: 'center', headerClassName: 'headercol',
+        renderCell:(params)=>(
+            (params.row.billDate).slice(0,10)
+            )
+        },
+        { field: 'customerName', headerName: 'CUSTOMER NAME', minWidth: 150,width:200, align:'center', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'customerId', headerName: 'CUSTOMER ID', minWidth: 100,width:150, align:'center', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'totalValue', headerName: 'TOTAL VALUE', minWidth: 100,width:150, align:'right', headerAlign: 'center', headerClassName: 'headercol',},
         { field: 'totalTax', headerName: 'TOTAL TAX', minWidth: 100, width:150, align:'right',  headerAlign: 'center', headerClassName: 'headercol',},
-        { field: 'totalAmount', headerName: 'Total AMOUNT', minWidth: 150, align:'right', headerAlign: 'center', headerClassName: 'headercol',},
-        { field: 'customerId', headerName: 'CUSTOMER ID', minWidth: 200,align:'center', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'totalAmount', headerName: 'Total AMOUNT', minWidth: 100, width:150,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
         { field: 'isCredit', headerName: 'IS CREDIT', minWidth: 150, align:'center',headerAlign: 'center', headerClassName: 'headercol',},
     ]
     function deletepost(r){

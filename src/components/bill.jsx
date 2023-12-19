@@ -1,8 +1,11 @@
 /* eslint-disable react/prop-types */
-import { Autocomplete, Button, Card, CardContent, CardHeader, Container, Fab, FormControlLabel, FormLabel, Radio, RadioGroup, Table, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from "@mui/material"
+import { Autocomplete, Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, FormControlLabel, FormLabel, IconButton, Radio, RadioGroup, TextField, Tooltip } from "@mui/material"
 import BillList from "./billList";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 const Bill=()=>{
     const [view,setView]=useState(true);
     const [editid,setEditid]=useState('')
@@ -34,11 +37,28 @@ export default Bill
 
 const BillEntry=({handleView,editid})=>{
     const todayDate = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+
     const customerAPI="https://localhost:5001/api/Customer"
+    const billAPI='https://localhost:5001/api/Bill'
+
     const [customerdata,setcustomerdata]=useState([])
     const [selectedCustomer,setSelectedCustomer]=useState('');
+    
     const [autoBillnumber,setAutoBillnumber]=useState(editid?editid.billNumber:'')
-    const [billdata,setbilldata]=useState('')
+    const [billdata,setbilldata]=useState('');
+    const [billId,setbillId]=useState(editid?editid.billId:'')
+    
+    
+    const [itemdata,setitemdata]=useState('');
+    const [edititemid,setedititemid]=useState('')
+    const [selecteditem,setselecteditem]=useState('')
+    const [iquantity,setiquantity]=useState('')
+    const [ivalue,setivalue]=useState("")
+    const [igstvalue,setigstvalue]=useState('')
+    
+
+    const [billdetaildata,setbilldetaildata]=useState('')
+
     const [formValues, setFormValues] = useState({
         billNumber:"",
         billDate: "",
@@ -49,7 +69,8 @@ const BillEntry=({handleView,editid})=>{
         customerName:"",
         isCredit: true
       });
-    const billAPI='https://localhost:5001/api/Bill'
+    const [saved,setsaved]=useState(false)
+
     const fetchcustomerData=async ()=>{
         try {
             const response=await axios.get(customerAPI);
@@ -76,21 +97,59 @@ const BillEntry=({handleView,editid})=>{
             console.error("Error Fetching Data:",error)
         }
     }
-    const fetchbillData=async ()=>{
+    const fetchbillData=async (billnumber)=>{
         try {
             const response=await axios.get(billAPI);
             //console.log(response.data);
             // console.log(response.data.rows)
             setbilldata(response.data.rows)
+            if(billnumber){
+                let b=response.data.rows.find(item => item.billNumber==billnumber)
+                setbillId(b.billId)
+            }
         }catch(error){
             console.error("Error fetching data:",error)
         }
     }
+    const fetchitemData=async ()=>{
+        try {
+            const response=await axios.get("https://localhost:5001/api/Item");
+            //console.log(response.data);
+            // console.log(response.data.rows)
+            setitemdata(response.data.rows)
+        }catch(error){
+            console.error("Error fetching data:",error)
+        }
+    }
+    const fetchbilldetaildata=async ()=>{
+        try {
+            const response = await axios.get("https://localhost:5001/api/BillDetails", {
+                params: { billId: billId }
+            });
+            //console.log(response.data);
+            //console.log(response.data.rows)
+            setbilldetaildata(response.data.rows)
+        }catch(error){
+            console.error("Error fetching data:",error)
+        }
+    }
+
     useEffect(()=>{
         fetchcustomerData();
         generateBillnumber();
         fetchbillData();
-    },[])
+        fetchitemData();
+        if(billId)
+            fetchbilldetaildata();
+        if(edititemid){
+            let a=itemdata.find(i=> i.itemId==edititemid.itemId) 
+            console.log(edititemid)
+            setselecteditem(a)
+            setiquantity(edititemid.quantity)
+            setivalue(edititemid.billValue)
+            setigstvalue(edititemid.gstValue)
+        }
+    },[saved,edititemid])
     function customerselection(value){
         setSelectedCustomer(value)
         setFormValues((prevValues) => ({
@@ -100,6 +159,9 @@ const BillEntry=({handleView,editid})=>{
             billNumber:document.getElementById("billNumber").value,
             billDate:document.getElementById("billDate").value,
         }));
+    }
+    function itemselection(value){
+        setselecteditem(value)
     }
     function savebillPost(e){
         e.preventDefault();
@@ -114,29 +176,119 @@ const BillEntry=({handleView,editid})=>{
     function addpost(){
         console.log('Form Values:', formValues);
         axios.post(billAPI, formValues)
-            .then(() => {
+            .then((response) => {
             console.log('added')
+            console.log(response)
             // document.getElementById("viewBTN").click() 
-            fetchcustomerData()
+            fetchbillData(response.data.billNumber)
+            setsaved(true)
         });
     }
     function editpost(){
         console.log('Form Values:', formValues);
         console.log(formValues)
-        axios.post(billAPI, {billId: editid.billId,...formValues})
-            .then(() => {
+        axios.post(billAPI, {billId:editid.billId,...formValues})
+            .then((response) => {
             console.log('edited')
+            console.log(response)
             // document.getElementById("viewBTN").click() 
         });
     }
-
     function savecheck(){
-        
         if(billdata && billdata.find(item=>item.billNumber==autoBillnumber))
             return true
         else
-            return false 
+            return false
     }
+    function quantitychange(e){
+        let iq=e.target.value
+        setiquantity(iq)
+        let iv=((iq) * (selecteditem ? selecteditem.rate : 0))
+        setivalue(iv)
+        let igstv=(iq) * (selecteditem ? selecteditem.rate : 0)*(selecteditem?selecteditem.gstRate:0)/100
+        setigstvalue(igstv)
+    }
+    function itemadd(e){
+        e.preventDefault();
+        console.log(billId)
+        console.log(autoBillnumber)
+        const itemform={
+            billDetailId:edititemid?edititemid.billDetailId:0,
+            billId: billId,
+            billNumber: autoBillnumber,
+            itemId: selecteditem.itemId,
+            itemCode: document.getElementById('itemCode').value,
+            itemName: document.getElementById('itemName').value,
+            quantity: document.getElementById('quantity').value,
+            rate: document.getElementById('rate').value,
+            billValue: document.getElementById('value').value,
+            gstPercent: document.getElementById('gstp').value,
+            gstValue: document.getElementById('gstv').value,
+            amount: document.getElementById('totalValue').value,
+        }
+        console.log(itemform)
+        axios.post("https://localhost:5001/api/BillDetails",itemform)
+            .then((response) => {
+            console.log('added bill details')
+            console.log(response)
+            setselecteditem(null);
+            setiquantity('');
+            setivalue('')
+            setigstvalue('')
+            fetchbilldetaildata()
+            setedititemid('')
+        });
+    }
+    
+    const column=[
+        { field: 'itemName', headerName: 'Item Name ',flex:1.5, minWidth: 100, headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'quantity', headerName: 'Quantity ',flex:1 , minWidth: 100,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'rate', headerName: 'Rate ',flex:1 , minWidth: 100, align:'right',headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'billValue', headerName: 'Value ',flex:1 , minWidth: 100,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'gstPercent', headerName: 'GST % ',flex:1 , minWidth: 100,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'gstValue', headerName: 'GST Value ',flex:1 , minWidth: 100,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'amount', headerName: 'Total Value ',flex:1 , minWidth: 100,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
+        { field: 'act', headerName: 'Action ',flex:1 , minWidth: 100,align:'center', headerAlign: 'center', headerClassName: 'headercol', sortable: false ,disableColumnMenu:true,
+        renderCell:(params)=>(
+            <ButtonGroup size="small">
+                <Tooltip title="EDIT" placement="left">
+                    <IconButton color="info" sx={{paddingY:'0.5rem'}} onClick={()=> getitemEditID(params.row)}>
+                        <EditIcon/> 
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="DELETE" placement="right">
+                    <IconButton color="error" sx={{paddingY:'0.5rem'}} onClick={()=> deleteitem(params.row)} >
+                        <DeleteIcon/> 
+                    </IconButton>
+                </Tooltip>
+            </ButtonGroup>
+        )
+        },
+    ]
+    function getitemEditID(row){
+        console.log(row)
+        setedititemid(row)
+    }
+    function deleteitem(r){
+        if(confirm("Are you want to delete")==true){
+            axios.delete(`https://localhost:5001/api/BillDetails/${r.billDetailId}`)
+            .then(()=>{
+                fetchbilldetaildata();
+                alert('deleted')
+            })
+        }
+        
+    }
+    function itemselectioncancel(){
+        setselecteditem(null);
+        setiquantity('');
+        setivalue('')
+        setigstvalue('')
+        fetchbilldetaildata()
+        setedititemid('')
+    }
+    console.log(billdetaildata)
+    console.log(billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.billValue,0))
     return(
         <>
         <Card className="my-2">
@@ -160,13 +312,13 @@ const BillEntry=({handleView,editid})=>{
                                 console.log(value)
                                 customerselection(value)
                             }}
-                            
                              renderInput={(params) => (
                                 <TextField
                                   label="Customer Name" required
                                   {...params}
                                 />
-                              )}
+                            )}
+                            isOptionEqualToValue={(option, value) => option.customerId === value.customerId}
                         />
                     </div>
                     <div className="col-sm-6 my-2">
@@ -214,12 +366,7 @@ const BillEntry=({handleView,editid})=>{
                     </div>
                     <div className="col-sm-6 my-2">
                         <TextField fullWidth size="small" label='Total Amount' id='totalAmount' name='totalAmount'
-                            onChange={(e) => {
-                                setFormValues((prevValues) => ({
-                                  ...prevValues,
-                                  totalAmount: e.target.value,
-                                }));
-                              }}
+                            value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)}
                         />
                     </div>
                     <div className="text-end my-2">
@@ -229,47 +376,79 @@ const BillEntry=({handleView,editid})=>{
                 </form>
             </CardContent>
         </Card>
-        {savecheck() && (
+        {(saved || savecheck()) && (
             <>
                 <Card className="my-2">
                     <CardContent>
-                        <form id="form2">
+                        <form id="form2" onSubmit={itemadd}>
                         <div className="row">
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Item Code' id='itemCode' name='itemCode'
+                                <Autocomplete fullWidth size="small" id="itemCode"
+                                    disablePortal options={itemdata} getOptionKey={(option) => option.itemId} getOptionLabel={(option) => option.itemCode}
+                                    value={selecteditem ? selecteditem : null}
+                                    onChange={(e,value)=>{
+                                        console.log(value)
+                                        itemselection(value)
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            label="Item Code" required
+                                            {...params}
+                                            />
+                                    )}
+                                    isOptionEqualToValue={(option, value) => option.itemId === value.itemId}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Item Name' id='itemName' name='itemName'  
+                                <Autocomplete fullWidth size="small" id="itemName"
+                                    disablePortal options={itemdata} getOptionKey={(option) => option.itemId} getOptionLabel={(option) => option.itemName}
+                                    value={selecteditem ? selecteditem : null}
+                                    onChange={(e,value)=>{
+                                        console.log(value)
+                                        itemselection(value)
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            label="Item Name" required
+                                            {...params}
+                                            />
+                                    )}
+                                    isOptionEqualToValue={(option, value) => option.itemId === value.itemId}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Rate' id='rate' name='rate' type="number"
+                                <TextField fullWidth size="small" label='Rate' id='rate' name='rate' type="number" 
+                                    value={selecteditem ? selecteditem.rate:""}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Quantity' id='quantity' name='quantity' type="number"
+                                <TextField fullWidth size="small" label='Quantity' id='quantity' name='quantity' type="number" required
+                                    value={iquantity}  onChange={quantitychange}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
                                 <TextField fullWidth size="small" label='Value' id='value' name='value' type="number"
+                                    value={ivalue}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
                                 <TextField fullWidth size="small" label='GST %' id='gstp' name='gstp' type="number"
+                                    value={selecteditem ? selecteditem.gstRate:""}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
                                 <TextField fullWidth size="small" label='GST Value' id='gstv' name='gstv' type="number"
+                                    value={igstvalue}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
                                 <TextField fullWidth size="small" label='Total Amount' id='totalValue' name='totalValue' type="number"
+                                    value={ivalue+igstvalue}
                                 />
                             </div>
                             <div className="text-end my-2">
-                                <Button variant="contained" color="success" sx={{marginX:'1em'}}>ADD</Button>
-                                <Button variant="contained" color="error" type="reset" sx={{marginX:'1em'}}>CANCEL</Button>
+                                <Button variant="contained" color="success" sx={{marginX:'1em'}} type="submit">ADD</Button>
+                                <Button variant="contained" color="error" type="reset" sx={{marginX:'1em'}} onClick={itemselectioncancel}>CANCEL</Button>
                             </div>
                         </div>
                         </form>
@@ -277,22 +456,38 @@ const BillEntry=({handleView,editid})=>{
                 </Card>
                 <Card className="my-2">
                     <CardContent>
-                        <TableContainer>
-                            <Table>
-                                <TableHead>
-                                    <TableRow sx={{backgroundColor:'#333232'}}>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>Item Name</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>Quantity</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>Rate</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>Value</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>GST %</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>GST Value</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>Total</TableCell>
-                                        <TableCell sx={{color:'white',fontWeight:'bold'}}>Action</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                            </Table>
-                        </TableContainer>
+                    <Box sx={{'& .headercol': { backgroundColor: 'gray', color: "white",fontSize:'1.1em'}}}>
+                    {billdetaildata.length>0 && (
+                        <DataGrid
+                            rows={billdetaildata} columns={column} disableRowSelectionOnClick
+                            getRowId={(row) => row.billDetailId} 
+                            initialState={{
+                                pagination: {
+                                paginationModel: {
+                                    pageSize: 10,
+                                },
+                                },
+                            }}
+                            pageSizeOptions={[10, 15, 25]}
+                            disableColumnFilter
+                            disableColumnSelector
+                            disableDensitySelector
+                            slots={{ toolbar: GridToolbar }}
+                            slotProps={{
+                                toolbar: {
+                                    showQuickFilter: true,
+                                    quickFilterProps: {
+                                        variant: "outlined",
+                                        size: "small",
+                                        sx:{width:'20rem'}
+                                    },
+                                    printOptions: { disableToolbarButton: true },
+                                    csvOptions: { disableToolbarButton: true },
+                                }}
+                            }
+                        />
+                    )}
+                </Box>
                     </CardContent>
                 </Card>
                 <Card className="my-2">
@@ -301,14 +496,17 @@ const BillEntry=({handleView,editid})=>{
                         <div className="row">
                             <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='Total Value' id='value' name='value' type="number"
+                                    value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.billValue,0)}
                                 />
                             </div>
                             <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='Total GST Value' id='totalGst' name='totalGst' type="number"
+                                    value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.gstValue,0)}
                                 />
                             </div>
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total Amount' id='amount' name='amount' type="number"
+                                <TextField fullWidth size="small" label='Total Amount' id='amount' name='amount' type="number"  
+                                    value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)}
                                 />
                             </div>
                         </div>
