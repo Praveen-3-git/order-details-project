@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, IconButton, TextField, Tooltip } from "@mui/material"
+import { Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, Fade, IconButton, Snackbar, TextField, Tooltip, Typography } from "@mui/material"
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import * as Yup from "yup";
@@ -8,9 +8,29 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import axios from "axios";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import MuiAlert from '@mui/material/Alert';
 const Item=()=>{
     const [view,setView]=useState(false);
     const [editid,setEditid]=useState('')
+
+    const [status, setstatus] =useState({
+        open: false,
+        text: '',
+        color: 'success',
+        vertical:'top',
+        horizontal:'center'
+    });
+    const handleClick = (text,color) => {
+        setstatus({open: true,text:text,color:color });
+    };
+    
+    const handleClose = (event, reason,newstatus) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+        setstatus({ ...newstatus, open: false });
+    };
+
     const baseURL="https://localhost:5001/api/Item"
     function handleView() {
         setView(false);
@@ -28,15 +48,22 @@ const Item=()=>{
     }
     return(
         <Container maxWidth='xl'>
-            {view ? <ItemEntry handleView={handleView} editid={editid}  closeEditid={closeEditid} baseURL={baseURL}/>
-                  : <ItemList handleAdd={handleAdd} getEditID={getEditID} baseURL={baseURL}/>  }
+            {view ? <ItemEntry handleView={handleView} editid={editid}  closeEditid={closeEditid} baseURL={baseURL} handleClick={handleClick} handleClose={handleClose} status={status} />
+                  : <ItemList handleAdd={handleAdd} getEditID={getEditID} baseURL={baseURL} handleClick={handleClick}/>  }
+                  <Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
+                        <MuiAlert severity={status.color} sx={{ width: '100%' }} variant="filled">
+                            {status.text}
+                        </MuiAlert>
+                    </Snackbar>
         </Container>
     )
 }
 
 
-const ItemList=({handleAdd,getEditID,baseURL})=>{
+const ItemList=({handleAdd,getEditID,baseURL,handleClick})=>{
     const [displayData,setDisplayData]=useState([]);
+    const [loading, setLoading] = useState(true); 
+
     const fetchData=async ()=>{
         try {
             const response=await axios.get(baseURL);
@@ -44,6 +71,8 @@ const ItemList=({handleAdd,getEditID,baseURL})=>{
             setDisplayData(response.data.rows)
         }catch(error){
             console.error("Error fetching data:",error)
+        }finally {
+            setLoading(false);
         }
     }
     useEffect(()=>{
@@ -74,11 +103,13 @@ const ItemList=({handleAdd,getEditID,baseURL})=>{
         { field: 'gstRate', headerName: 'GSTRATE', flex:1, minWidth: 100, align: 'right', headerAlign: 'center', headerClassName: 'headercol',},
     ]
     function deletepost(r){
-        axios.delete(`${baseURL}/${r.itemId}`)
-            .then(()=>{
-                alert("Post Deleted!")
-                fetchData();
-            })
+        if(confirm("Are you want to delete")==true){
+            axios.delete(`${baseURL}/${r.itemId}`)
+                .then(()=>{
+                    handleClick("DELETED","success")
+                    fetchData();
+                })
+        }
     }
     return(
         <Card>
@@ -90,40 +121,59 @@ const ItemList=({handleAdd,getEditID,baseURL})=>{
             />
             <CardContent>
                 <Box sx={{'& .headercol': { backgroundColor: 'gray', color: "white",fontSize:'1.1em'}}}>
-                <DataGrid
-                        rows={displayData} columns={column} disableRowSelectionOnClick
-                        getRowId={(row) => row.itemId} 
-                        initialState={{
-                            pagination: {
-                              paginationModel: {
-                                pageSize: 10,
-                              },
-                            },
-                        }}
-                        pageSizeOptions={[10, 15, 25]}
-                        disableColumnFilter
-                        disableColumnSelector
-                        disableDensitySelector
-                        slots={{ toolbar: GridToolbar }}
-                        slotProps={{
-                            toolbar: {
-                                showQuickFilter: true,
-                                quickFilterProps: {
-                                    variant: "outlined",
-                                    size: "small",
-                                    sx:{width:'20rem'}
-                                },
-                                printOptions: { disableToolbarButton: true },
-                                csvOptions: { disableToolbarButton: true },
-                            }}
-                        }
-                    />
+                    {loading 
+                        ?(<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <img
+                                src='src/assets/loading.gif'
+                                alt='emptyfolder'
+                                style={{ opacity: '0.5', pointerEvents: 'none', width: '9rem', height: '9rem' }}
+                            ></img>
+                            <Typography align='center'>LOADING ... </Typography>
+                        </div>)
+                        : displayData.length>0 
+                            ?(<DataGrid
+                                rows={displayData} columns={column} disableRowSelectionOnClick
+                                getRowId={(row) => row.itemId} 
+                                initialState={{
+                                    pagination: {
+                                    paginationModel: {
+                                        pageSize: 10,
+                                    },
+                                    },
+                                }}
+                                pageSizeOptions={[10, 15, 25]}
+                                disableColumnFilter
+                                disableColumnSelector
+                                disableDensitySelector
+                                slots={{ toolbar: GridToolbar }}
+                                slotProps={{
+                                    toolbar: {
+                                        showQuickFilter: true,
+                                        quickFilterProps: {
+                                            variant: "outlined",
+                                            size: "small",
+                                            sx:{width:'20rem'}
+                                        },
+                                        printOptions: { disableToolbarButton: true },
+                                        csvOptions: { disableToolbarButton: true },
+                                    }}
+                                }
+                            />)
+                            :(<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                <img
+                                    src='src/assets/empty-folder.png'
+                                    alt='emptyfolder'
+                                    style={{ opacity: '0.5', pointerEvents: 'none', width: '9rem', height: '9rem' }}
+                                ></img>
+                                <Typography align='center'>NO RECORD FOUND</Typography>
+                            </div>)
+                    }
                 </Box>
             </CardContent>
         </Card>
     )
 }
-const ItemEntry=({handleView,editid,baseURL})=>{
+const ItemEntry=({handleView,editid,baseURL,handleClick})=>{
     const formik=useFormik({
         initialValues:{
             itemCode:editid?editid.itemCode:'',
@@ -161,6 +211,7 @@ const ItemEntry=({handleView,editid,baseURL})=>{
             gstRate:values.gstRate,
         }).then(() => {
             console.log('added')
+            handleClick("Added","success")
             document.getElementById("viewBTN").click() 
         });
     }
@@ -177,6 +228,7 @@ const ItemEntry=({handleView,editid,baseURL})=>{
             })
             .then((response) => {
                 console.log(response)
+                handleClick("Updated","success")
                 document.getElementById("viewBTN").click() 
             })
             .catch((error) => {

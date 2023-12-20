@@ -1,14 +1,34 @@
 /* eslint-disable react/prop-types */
-import { Autocomplete, Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, FormControlLabel, FormLabel, IconButton, Radio, RadioGroup, TextField, Tooltip } from "@mui/material"
+import { Autocomplete, Box, Button, ButtonGroup, Card, CardContent, CardHeader, Container, Fab, Fade, FormControlLabel, FormLabel, IconButton, Radio, RadioGroup, Snackbar, TextField, Tooltip } from "@mui/material"
 import BillList from "./billList";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import MuiAlert from '@mui/material/Alert';
 const Bill=()=>{
-    const [view,setView]=useState(true);
+    const [view,setView]=useState(false);
     const [editid,setEditid]=useState('')
+
+    const [status, setstatus] =useState({
+        open: false,
+        text: '',
+        color: 'success',
+        vertical:'top',
+        horizontal:'center'
+    });
+    const handleClick = (text,color) => {
+        setstatus({open: true,text:text,color:color });
+    };
+    
+    const handleClose = (event, reason,newstatus) => {
+        if (reason === 'clickaway') {
+          return;
+        }
+        setstatus({ ...newstatus, open: false });
+    };
+
     const baseURL='https://localhost:5001/api/Bill'
     function handleView() {
         setView(false);
@@ -27,23 +47,30 @@ const Bill=()=>{
     return(
         <>
             <Container maxWidth='xl'>
-            {view ? <BillEntry handleView={handleView}  baseURL={baseURL} editid={editid}  closeEditid={closeEditid}/>
-                  : <BillList handleAdd={handleAdd} baseURL={baseURL} getEditID={getEditID}/>  }
+            {view ? <BillEntry handleView={handleView}  baseURL={baseURL} editid={editid}  closeEditid={closeEditid} handleClick={handleClick}/>
+                  : <BillList handleAdd={handleAdd} baseURL={baseURL} getEditID={getEditID} handleClick={handleClick}/>  }
+                  <Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
+                        <MuiAlert severity={status.color} sx={{ width: '100%' }} variant="filled">
+                            {status.text}
+                        </MuiAlert>
+                    </Snackbar>
         </Container>
         </>
     )
 }
 export default Bill
 
-const BillEntry=({handleView,editid})=>{
-    const todayDate = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-
+const BillEntry=({handleView,editid,handleClick})=>{
+    //editid.billDate =2023-12-19T00:00:00
+    const todayDate =  editid  ? editid.billDate.split('T')[0] : new Date().toISOString().split('T')[0]
+    
     const customerAPI="https://localhost:5001/api/Customer"
     const billAPI='https://localhost:5001/api/Bill'
 
     const [customerdata,setcustomerdata]=useState([])
     const [selectedCustomer,setSelectedCustomer]=useState('');
-    
+    const [outamount,setoutamount]=useState("")
+
     const [autoBillnumber,setAutoBillnumber]=useState(editid?editid.billNumber:'')
     const [billdata,setbilldata]=useState('');
     const [billId,setbillId]=useState(editid?editid.billId:'')
@@ -149,9 +176,16 @@ const BillEntry=({handleView,editid})=>{
             setivalue(edititemid.billValue)
             setigstvalue(edititemid.gstValue)
         }
+        if(editid){
+            let e=editid.customerId
+            console.log(e)
+            let a=customerdata.find(ee=>ee.customerId==e)
+            console.log(a)
+        }
     },[saved,edititemid])
     function customerselection(value){
         setSelectedCustomer(value)
+        setoutamount(value?value.outstandingAmount:'')
         setFormValues((prevValues) => ({
             ...prevValues,
             customerId: value?.customerId || 0,
@@ -168,7 +202,7 @@ const BillEntry=({handleView,editid})=>{
         if(editid){
             editpost()
             console.log("edit")
-        }else{
+        }else{ 
             addpost()
             console.log("add")
         }
@@ -178,8 +212,7 @@ const BillEntry=({handleView,editid})=>{
         axios.post(billAPI, formValues)
             .then((response) => {
             console.log('added')
-            console.log(response)
-            // document.getElementById("viewBTN").click() 
+            handleClick("Added","success")
             fetchbillData(response.data.billNumber)
             setsaved(true)
         });
@@ -188,10 +221,9 @@ const BillEntry=({handleView,editid})=>{
         console.log('Form Values:', formValues);
         console.log(formValues)
         axios.post(billAPI, {billId:editid.billId,...formValues})
-            .then((response) => {
+            .then(() => {
             console.log('edited')
-            console.log(response)
-            // document.getElementById("viewBTN").click() 
+            handleClick("Updated","success")
         });
     }
     function savecheck(){
@@ -230,6 +262,7 @@ const BillEntry=({handleView,editid})=>{
         axios.post("https://localhost:5001/api/BillDetails",itemform)
             .then((response) => {
             console.log('added bill details')
+            handleClick("Added items","info")
             console.log(response)
             setselecteditem(null);
             setiquantity('');
@@ -237,6 +270,7 @@ const BillEntry=({handleView,editid})=>{
             setigstvalue('')
             fetchbilldetaildata()
             setedititemid('')
+            setoutamount((prevamount)=>prevamount+(billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)))
         });
     }
     
@@ -274,6 +308,7 @@ const BillEntry=({handleView,editid})=>{
             axios.delete(`https://localhost:5001/api/BillDetails/${r.billDetailId}`)
             .then(()=>{
                 fetchbilldetaildata();
+                handleClick("Removed items","info")
                 alert('deleted')
             })
         }
@@ -287,8 +322,6 @@ const BillEntry=({handleView,editid})=>{
         fetchbilldetaildata()
         setedititemid('')
     }
-    console.log(billdetaildata)
-    console.log(billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.billValue,0))
     return(
         <>
         <Card className="my-2">
@@ -338,7 +371,7 @@ const BillEntry=({handleView,editid})=>{
                     </div>
                     <div className="col-sm-6 my-2">
                         <TextField fullWidth size="small" label='Outstanding Amount' id='outstandingAmount' name='outstandingAmount' required InputProps={{readOnly:true}}
-                            value={selectedCustomer ? (selectedCustomer.outstandingAmount):""}
+                            value={outamount}
                         />
                     </div>
                     <div className="col-sm-6 my-2 row">
@@ -365,7 +398,7 @@ const BillEntry=({handleView,editid})=>{
                         />
                     </div>
                     <div className="col-sm-6 my-2">
-                        <TextField fullWidth size="small" label='Total Amount' id='totalAmount' name='totalAmount'
+                        <TextField fullWidth size="small" label='Total Amount' id='totalAmount' name='totalAmount' required InputProps={{readOnly:true}}
                             value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)}
                         />
                     </div>
@@ -417,32 +450,32 @@ const BillEntry=({handleView,editid})=>{
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Rate' id='rate' name='rate' type="number" 
+                                <TextField fullWidth size="small" label='Rate' id='rate' name='rate' type="number"  InputProps={{readOnly:true}}
                                     value={selecteditem ? selecteditem.rate:""}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Quantity' id='quantity' name='quantity' type="number" required
+                                <TextField fullWidth size="small" label='Quantity' id='quantity' name='quantity' type="number" required 
                                     value={iquantity}  onChange={quantitychange}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Value' id='value' name='value' type="number"
+                                <TextField fullWidth size="small" label='Value' id='value' name='value' type="number" InputProps={{readOnly:true}}
                                     value={ivalue}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='GST %' id='gstp' name='gstp' type="number"
+                                <TextField fullWidth size="small" label='GST %' id='gstp' name='gstp' type="number" InputProps={{readOnly:true}}
                                     value={selecteditem ? selecteditem.gstRate:""}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='GST Value' id='gstv' name='gstv' type="number"
+                                <TextField fullWidth size="small" label='GST Value' id='gstv' name='gstv' type="number" InputProps={{readOnly:true}}
                                     value={igstvalue}
                                 />
                             </div>
                             <div className="col-sm-2 my-2">
-                                <TextField fullWidth size="small" label='Total Amount' id='totalValue' name='totalValue' type="number"
+                                <TextField fullWidth size="small" label='Total Amount' id='totalValue' name='totalValue' type="number" InputProps={{readOnly:true}}
                                     value={ivalue+igstvalue}
                                 />
                             </div>
@@ -495,17 +528,17 @@ const BillEntry=({handleView,editid})=>{
                         <form id="form3">
                         <div className="row">
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total Value' id='value' name='value' type="number"
+                                <TextField fullWidth size="small" label='Total Value' id='value' name='value' type="number" InputProps={{readOnly:true}}
                                     value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.billValue,0)}
                                 />
                             </div>
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total GST Value' id='totalGst' name='totalGst' type="number"
+                                <TextField fullWidth size="small" label='Total GST Value' id='totalGst' name='totalGst' type="number" InputProps={{readOnly:true}}
                                     value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.gstValue,0)}
                                 />
                             </div>
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total Amount' id='amount' name='amount' type="number"  
+                                <TextField fullWidth size="small" label='Total Amount' id='amount' name='amount' type="number"  InputProps={{readOnly:true}}
                                     value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)}
                                 />
                             </div>
