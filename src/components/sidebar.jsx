@@ -22,6 +22,7 @@ import { Tooltip, useMediaQuery } from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import HomeIcon from '@mui/icons-material/Home';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import { ConfirmProvider } from 'material-ui-confirm';
 const drawerWidth = 180;
 
 const openedMixin = (theme) => ({
@@ -109,6 +110,7 @@ export default function Sidebarmini() {
   };
 
   return (
+    <ConfirmProvider>
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
@@ -175,5 +177,6 @@ export default function Sidebarmini() {
         <Outlet/>
       </Box>
     </Box>
+    </ConfirmProvider>
   );
 }

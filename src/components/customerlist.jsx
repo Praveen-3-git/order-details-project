@@ -8,6 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { useLocation, useNavigate } from "react-router-dom";
 import MuiAlert from '@mui/material/Alert';
+import { useConfirm } from "material-ui-confirm";
 
 //import CalendarViewDayIcon from '@mui/icons-material/CalendarViewDay';
 const CustomerList=()=>{
@@ -15,7 +16,7 @@ const CustomerList=()=>{
     const [displayData,setDisplayData]=useState([]);
     const [loading, setLoading] = useState(true); 
     const location = useLocation();
-
+    const confirm=useConfirm();
     const [status, setstatus] =useState({
         open: false,
         text: '',
@@ -79,14 +80,13 @@ const CustomerList=()=>{
         { field: 'outstandingLimit', headerName: 'OutstandingLimit', minWidth: 100, flex:1, align: 'right', headerAlign: 'center', headerClassName: 'headercol',},
     ]
     function deletepost(r){
-        if(confirm("Are you want to delete")==true){
-            axios.delete(`${baseURL}/${r.customerId}`)
+        confirm({description:`Are you sure to delete ${r.customerName}`})
+            .then(()=>axios.delete(`${baseURL}/${r.customerId}`)
                 .then(()=>{
-                    //alert("Post Deleted!")
                     handleClick("DELETED","success")
                     fetchData();
                 })
-        }
+            )
     }
     function getEditID(r){
         tocustomerEntry(r)

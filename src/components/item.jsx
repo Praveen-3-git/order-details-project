@@ -9,6 +9,7 @@ import AddIcon from '@mui/icons-material/Add';
 import axios from "axios";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import MuiAlert from '@mui/material/Alert';
+import { useConfirm } from "material-ui-confirm";
 const Item=()=>{
     const [view,setView]=useState(false);
     const [editid,setEditid]=useState('')
@@ -63,7 +64,7 @@ const Item=()=>{
 const ItemList=({handleAdd,getEditID,baseURL,handleClick})=>{
     const [displayData,setDisplayData]=useState([]);
     const [loading, setLoading] = useState(true); 
-
+    const confirm=useConfirm();
     const fetchData=async ()=>{
         try {
             const response=await axios.get(baseURL);
@@ -103,13 +104,13 @@ const ItemList=({handleAdd,getEditID,baseURL,handleClick})=>{
         { field: 'gstRate', headerName: 'GSTRATE', flex:1, minWidth: 100, align: 'right', headerAlign: 'center', headerClassName: 'headercol',},
     ]
     function deletepost(r){
-        if(confirm("Are you want to delete")==true){
-            axios.delete(`${baseURL}/${r.itemId}`)
+        confirm({description:`Are you sure to delete ${r.itemName} ${r.itemCode}`})
+            .then(()=>axios.delete(`${baseURL}/${r.itemId}`)
                 .then(()=>{
                     handleClick("DELETED","success")
                     fetchData();
                 })
-        }
+            ).catch(() => console.log("Deletion cancelled."));
     }
     return(
         <Card>

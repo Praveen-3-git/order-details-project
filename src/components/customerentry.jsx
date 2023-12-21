@@ -57,12 +57,20 @@ const CustomerEntry=()=>{
             address:Yup.string().required("Address is Required"),
             street:Yup.string().required("Street is Required"),
             city:Yup.string().required("City is Required"),
-            pincode:Yup.string().required("Pincode is Required"),
+            pincode:Yup.string().required("Pincode is Required").max(6,"Need Valid Pincode").min(6,"Need Valid Pincode"),
             mobileNumber:Yup.string().required("Mobile Number is Required").matches(mobileregex,"Need Valid Mobile Number"),
             email:Yup.string().required("Email is Required").email('Need valid Mail'),
             outstandingAmount:Yup.number().required("Outstanding Amount is Required"),
             outstandingLimit:Yup.number().required("Outstanding Limit is Required"),
         }),
+        validate:(values)=>{
+            const errors={};
+            console.log(values.outstandingAmount)
+            if(values.outstandingAmount>values.outstandingLimit){
+                errors.outstandingAmount ="Ouststanding Amount do not Exceed Limit";
+            }
+            return errors;
+        },
         onSubmit:(values)=>{
             console.log(values)
             if(editid){     

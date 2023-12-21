@@ -8,12 +8,13 @@ import AddIcon from '@mui/icons-material/Add';
 import { useEffect, useState } from "react";
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import { useConfirm } from "material-ui-confirm";
 
 
 const BillList = ({handleAdd,baseURL,getEditID,handleClick}) => {
     const [displayData,setDisplayData]=useState([]);
     const [loading, setLoading] = useState(true); 
-
+    const confirm=useConfirm();
     const fetchData=async ()=>{
         try {
             const response=await axios.get(baseURL);
@@ -67,17 +68,17 @@ const BillList = ({handleAdd,baseURL,getEditID,handleClick}) => {
         },
     ]
     function deletepost(r){
-        if(confirm("Are you want to delete")==true){
-            axios.delete(`${baseURL}/${r.billId}`)
+        confirm({description:`Are you sure to delete ${r.billNumber}`})
+            .then(()=>axios.delete(`${baseURL}/${r.billId}`)
                 .then(()=>{
                     handleClick("DELETED","success")
                     fetchData();
                 })
-        }
+            ).catch(() => console.log("Deletion cancelled."));
     }
   return (
     <>
-       <Card>
+       <Card className="my-2">
             <CardHeader 
                 title="BILL LIST" 
                 action={<Tooltip title="View" placement="top" arrow>

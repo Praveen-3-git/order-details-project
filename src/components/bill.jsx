@@ -7,6 +7,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import MuiAlert from '@mui/material/Alert';
+import { useConfirm } from "material-ui-confirm";
+import CloseIcon from '@mui/icons-material/Close';
 const Bill=()=>{
     const [view,setView]=useState(false);
     const [editid,setEditid]=useState('')
@@ -26,7 +28,7 @@ const Bill=()=>{
         if (reason === 'clickaway') {
           return;
         }
-        setstatus({ ...newstatus, open: false });
+        setstatus({ open: false,...newstatus });
     };
 
     const baseURL='https://localhost:5001/api/Bill'
@@ -44,16 +46,17 @@ const Bill=()=>{
     function closeEditid(){
         setEditid('')
     }
+    
     return(
-        <>
+        <> 
             <Container maxWidth='xl'>
             {view ? <BillEntry handleView={handleView}  baseURL={baseURL} editid={editid}  closeEditid={closeEditid} handleClick={handleClick}/>
                   : <BillList handleAdd={handleAdd} baseURL={baseURL} getEditID={getEditID} handleClick={handleClick}/>  }
-                  <Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
+                    {status.open && (<Snackbar open={status.open} autoHideDuration={3000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
                         <MuiAlert severity={status.color} sx={{ width: '100%' }} variant="filled">
                             {status.text}
                         </MuiAlert>
-                    </Snackbar>
+                    </Snackbar>) }
         </Container>
         </>
     )
@@ -61,7 +64,7 @@ const Bill=()=>{
 export default Bill
 
 const BillEntry=({handleView,editid,handleClick})=>{
-    //editid.billDate =2023-12-19T00:00:00
+    const confirm=useConfirm();
     const todayDate =  editid  ? editid.billDate.split('T')[0] : new Date().toISOString().split('T')[0]
     
     const customerAPI="https://localhost:5001/api/Customer"
@@ -75,7 +78,6 @@ const BillEntry=({handleView,editid,handleClick})=>{
     const [billdata,setbilldata]=useState('');
     const [billId,setbillId]=useState(editid?editid.billId:'')
     
-    
     const [itemdata,setitemdata]=useState('');
     const [edititemid,setedititemid]=useState('')
     const [selecteditem,setselecteditem]=useState('')
@@ -83,7 +85,6 @@ const BillEntry=({handleView,editid,handleClick})=>{
     const [ivalue,setivalue]=useState("")
     const [igstvalue,setigstvalue]=useState('')
     
-
     const [billdetaildata,setbilldetaildata]=useState('')
 
     const [formValues, setFormValues] = useState({
@@ -107,7 +108,10 @@ const BillEntry=({handleView,editid,handleClick})=>{
             if(editid){
                 console.log(editid)
                 let cd=(response.data.rows).find(item=> item.customerId==editid.customerId);
+                console.log(cd)
                 setSelectedCustomer(cd)
+                setoutamount(cd.outstandingAmount)
+
             }
         }catch(error){
             console.error("Error fetching data:",error)
@@ -176,12 +180,6 @@ const BillEntry=({handleView,editid,handleClick})=>{
             setivalue(edititemid.billValue)
             setigstvalue(edititemid.gstValue)
         }
-        if(editid){
-            let e=editid.customerId
-            console.log(e)
-            let a=customerdata.find(ee=>ee.customerId==e)
-            console.log(a)
-        }
     },[saved,edititemid])
     function customerselection(value){
         setSelectedCustomer(value)
@@ -196,6 +194,14 @@ const BillEntry=({handleView,editid,handleClick})=>{
     }
     function itemselection(value){
         setselecteditem(value)
+        setiquantity("")
+        setivalue('')
+        setigstvalue('')
+        focustextbox()
+    }
+    function focustextbox(){
+        const x=document.getElementById('quantity');
+        x.focus(); 
     }
     function savebillPost(e){
         e.preventDefault();
@@ -251,6 +257,7 @@ const BillEntry=({handleView,editid,handleClick})=>{
             itemId: selecteditem.itemId,
             itemCode: document.getElementById('itemCode').value,
             itemName: document.getElementById('itemName').value,
+            stock:selecteditem.stock,
             quantity: document.getElementById('quantity').value,
             rate: document.getElementById('rate').value,
             billValue: document.getElementById('value').value,
@@ -259,21 +266,54 @@ const BillEntry=({handleView,editid,handleClick})=>{
             amount: document.getElementById('totalValue').value,
         }
         console.log(itemform)
-        axios.post("https://localhost:5001/api/BillDetails",itemform)
+        if(edititemid){
+            console.log('edititem')
+            axios.patch("https://localhost:5001/api/BillDetails",itemform)
             .then((response) => {
-            console.log('added bill details')
-            handleClick("Added items","info")
-            console.log(response)
-            setselecteditem(null);
-            setiquantity('');
-            setivalue('')
-            setigstvalue('')
-            fetchbilldetaildata()
-            setedititemid('')
-            setoutamount((prevamount)=>prevamount+(billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)))
-        });
-    }
-    
+                console.log('edited bill details')
+                console.log(response)
+                if(response.data.status=="Saved SuccessFully"){
+                    handleClick("Updated items","info")
+                    fetchcustomerData()
+                }else{
+                    handleClick(response.data.status,"error")
+                }
+                setselecteditem(null);
+                setiquantity('');
+                setivalue('')
+                setigstvalue('')
+                fetchbilldetaildata()
+                setedititemid('')
+                
+            }).catch((error) => {
+                console.error('Error Updating bill details:', error.message);
+                handleClick("Failed to Update items", "error");
+            });
+        }else{
+            console.log('additem')
+            axios.post("https://localhost:5001/api/BillDetails",itemform)
+            .then((response) => {
+                console.log('added bill details')
+                console.log(response)
+                if(response.data.status=="Saved SuccessFully"){
+                    handleClick("Added items","info")
+                    fetchcustomerData()
+                }else{
+                    handleClick(response.data.status,"error")
+                }
+                setselecteditem(null);
+                setiquantity('');
+                setivalue('')
+                setigstvalue('')
+                fetchbilldetaildata()
+                setedititemid('')
+                
+            }).catch((error) => {
+                console.error('Error adding bill details:', error.message);
+                handleClick("Failed to add items", "error");
+            });
+        }
+    }   
     const column=[
         { field: 'itemName', headerName: 'Item Name ',flex:1.5, minWidth: 100, headerAlign: 'center', headerClassName: 'headercol',},
         { field: 'quantity', headerName: 'Quantity ',flex:1 , minWidth: 100,align:'right', headerAlign: 'center', headerClassName: 'headercol',},
@@ -304,14 +344,14 @@ const BillEntry=({handleView,editid,handleClick})=>{
         setedititemid(row)
     }
     function deleteitem(r){
-        if(confirm("Are you want to delete")==true){
-            axios.delete(`https://localhost:5001/api/BillDetails/${r.billDetailId}`)
-            .then(()=>{
-                fetchbilldetaildata();
-                handleClick("Removed items","info")
-                alert('deleted')
-            })
-        }
+        confirm({description:`Are you sure to delete ${r.itemName} ${r.itemCode}`})
+            .then(()=>axios.delete(`https://localhost:5001/api/BillDetails/${r.billDetailId}`)
+                .then(()=>{
+                    fetchbilldetaildata();
+                    fetchcustomerData();
+                    handleClick("Removed items","info")
+                })
+            ).catch(() => console.log("Deletion cancelled."));
         
     }
     function itemselectioncancel(){
@@ -322,14 +362,15 @@ const BillEntry=({handleView,editid,handleClick})=>{
         fetchbilldetaildata()
         setedititemid('')
     }
+    
     return(
         <>
         <Card className="my-2">
             <CardHeader 
                 title="BILLING SERVICES"
                 action={<Tooltip title="View" placement="top" arrow>
-                            <Fab variant="extended" size="small" id="viewBTN" color="primary" sx={{padding:'1em'}} onClick={handleView} >
-                                View
+                            <Fab size="small" id="viewBTN" sx={{padding:'1em'}} onClick={handleView} >
+                                <CloseIcon/>
                             </Fab>
                         </Tooltip> }
             />
@@ -340,7 +381,7 @@ const BillEntry=({handleView,editid,handleClick})=>{
                         {/* <TextField fullWidth size="small" label='Customer Name' id='customerName' name='customerName'
                         /> */}
                         <Autocomplete fullWidth size="small" disablePortal options={customerdata} getOptionKey={(option) => option.customerId} getOptionLabel={(option) => option.customerName}
-                            value={selectedCustomer ? selectedCustomer : null}
+                            value={selectedCustomer ? selectedCustomer : null} readOnly={editid?true:false}
                             onChange={(e,value)=>{
                                 console.log(value)
                                 customerselection(value)
@@ -371,6 +412,7 @@ const BillEntry=({handleView,editid,handleClick})=>{
                     </div>
                     <div className="col-sm-6 my-2">
                         <TextField fullWidth size="small" label='Outstanding Amount' id='outstandingAmount' name='outstandingAmount' required InputProps={{readOnly:true}}
+                            //value={selectedCustomer?selectedCustomer.outstandingAmount:""}
                             value={outamount}
                         />
                     </div>
@@ -398,7 +440,7 @@ const BillEntry=({handleView,editid,handleClick})=>{
                         />
                     </div>
                     <div className="col-sm-6 my-2">
-                        <TextField fullWidth size="small" label='Total Amount' id='totalAmount' name='totalAmount' required InputProps={{readOnly:true}}
+                        <TextField fullWidth size="small" label='Total Amount' id='totalAmount' name='totalAmount' required InputProps={{readOnly:true}} sx={{pointerEvents:'none'}}
                             value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)}
                         />
                     </div>
@@ -415,7 +457,7 @@ const BillEntry=({handleView,editid,handleClick})=>{
                     <CardContent>
                         <form id="form2" onSubmit={itemadd}>
                         <div className="row">
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <Autocomplete fullWidth size="small" id="itemCode"
                                     disablePortal options={itemdata} getOptionKey={(option) => option.itemId} getOptionLabel={(option) => option.itemCode}
                                     value={selecteditem ? selecteditem : null}
@@ -432,7 +474,7 @@ const BillEntry=({handleView,editid,handleClick})=>{
                                     isOptionEqualToValue={(option, value) => option.itemId === value.itemId}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <Autocomplete fullWidth size="small" id="itemName"
                                     disablePortal options={itemdata} getOptionKey={(option) => option.itemId} getOptionLabel={(option) => option.itemName}
                                     value={selecteditem ? selecteditem : null}
@@ -449,38 +491,40 @@ const BillEntry=({handleView,editid,handleClick})=>{
                                     isOptionEqualToValue={(option, value) => option.itemId === value.itemId}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='Rate' id='rate' name='rate' type="number"  InputProps={{readOnly:true}}
                                     value={selecteditem ? selecteditem.rate:""}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='Quantity' id='quantity' name='quantity' type="number" required 
                                     value={iquantity}  onChange={quantitychange}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='Value' id='value' name='value' type="number" InputProps={{readOnly:true}}
                                     value={ivalue}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='GST %' id='gstp' name='gstp' type="number" InputProps={{readOnly:true}}
                                     value={selecteditem ? selecteditem.gstRate:""}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='GST Value' id='gstv' name='gstv' type="number" InputProps={{readOnly:true}}
                                     value={igstvalue}
                                 />
                             </div>
-                            <div className="col-sm-2 my-2">
+                            <div className="col-sm-3 my-2">
                                 <TextField fullWidth size="small" label='Total Amount' id='totalValue' name='totalValue' type="number" InputProps={{readOnly:true}}
                                     value={ivalue+igstvalue}
                                 />
                             </div>
                             <div className="text-end my-2">
-                                <Button variant="contained" color="success" sx={{marginX:'1em'}} type="submit">ADD</Button>
+                                {edititemid 
+                                    ? (<Button variant="contained" color="info" sx={{marginX:'1em'}} type="submit">ADD</Button>)
+                                    : (<Button variant="contained" color="success" sx={{marginX:'1em'}} type="submit">ADD</Button>) }
                                 <Button variant="contained" color="error" type="reset" sx={{marginX:'1em'}} onClick={itemselectioncancel}>CANCEL</Button>
                             </div>
                         </div>
@@ -528,17 +572,17 @@ const BillEntry=({handleView,editid,handleClick})=>{
                         <form id="form3">
                         <div className="row">
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total Value' id='value' name='value' type="number" InputProps={{readOnly:true}}
+                                <TextField fullWidth size="small" label='Total Value' id='value' name='value' type="number" InputProps={{readOnly:true}} sx={{pointerEvents:'none'}}
                                     value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.billValue,0)}
                                 />
                             </div>
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total GST Value' id='totalGst' name='totalGst' type="number" InputProps={{readOnly:true}}
+                                <TextField fullWidth size="small" label='Total GST Value' id='totalGst' name='totalGst' type="number" InputProps={{readOnly:true}} sx={{pointerEvents:'none'}}
                                     value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.gstValue,0)}
                                 />
                             </div>
                             <div className="col-sm-3 my-2">
-                                <TextField fullWidth size="small" label='Total Amount' id='amount' name='amount' type="number"  InputProps={{readOnly:true}}
+                                <TextField fullWidth size="small" label='Total Amount' id='amount' name='amount' type="number"  InputProps={{readOnly:true}} sx={{pointerEvents:'none'}}
                                     value={billdetaildata && billdetaildata.reduce((sum,acc)=>sum+acc.amount,0)}
                                 />
                             </div>
