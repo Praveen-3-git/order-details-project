@@ -219,11 +219,12 @@ const CustomerEntry=()=>{
                             : (<Button variant="contained" color="primary" sx={{marginX:'1em'}} type="submit">SAVE</Button>) }  
                         <Button variant="contained" color="error" sx={{marginX:'1em'}} type="reset" onClick={cancelBtn} >CANCEL</Button>
                     </div>
-                    <Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
+                    {status.open && (<Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
                         <MuiAlert severity={status.color} sx={{ width: '100%' }} variant="filled">
                             {status.text}
                         </MuiAlert>
-                    </Snackbar>
+                    </Snackbar>) }
+                    
                 </CardContent>
             </form>
         </Card>

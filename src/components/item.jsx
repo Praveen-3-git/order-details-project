@@ -51,11 +51,12 @@ const Item=()=>{
         <Container maxWidth='xl'>
             {view ? <ItemEntry handleView={handleView} editid={editid}  closeEditid={closeEditid} baseURL={baseURL} handleClick={handleClick} handleClose={handleClose} status={status} />
                   : <ItemList handleAdd={handleAdd} getEditID={getEditID} baseURL={baseURL} handleClick={handleClick}/>  }
-                  <Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
+                  {status.open && (<Snackbar open={status.open} autoHideDuration={1000} TransitionComponent={Fade} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} >
                         <MuiAlert severity={status.color} sx={{ width: '100%' }} variant="filled">
                             {status.text}
                         </MuiAlert>
-                    </Snackbar>
+                    </Snackbar>)}
+                  
         </Container>
     )
 }

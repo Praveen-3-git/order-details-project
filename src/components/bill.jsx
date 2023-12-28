@@ -112,6 +112,11 @@ const BillEntry=({handleView,editid,handleClick})=>{
                 setSelectedCustomer(cd)
                 setoutamount(cd.outstandingAmount)
 
+            }else{
+                let cd=(response.data.rows).find(item=> item.customerId==formValues.customerId);
+                console.log(cd)
+                setSelectedCustomer(cd)
+                setoutamount(cd.outstandingAmount)
             }
         }catch(error){
             console.error("Error fetching data:",error)
@@ -197,12 +202,9 @@ const BillEntry=({handleView,editid,handleClick})=>{
         setiquantity("")
         setivalue('')
         setigstvalue('')
-        focustextbox()
+        document.getElementById('quantity').focus(); 
     }
-    function focustextbox(){
-        const x=document.getElementById('quantity');
-        x.focus(); 
-    }
+    
     function savebillPost(e){
         e.preventDefault();
         if(editid){
